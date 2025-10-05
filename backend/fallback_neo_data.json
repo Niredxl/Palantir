@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Sample Asteroid 1",
+    "nasa_jpl_url": "https://ssd.jpl.nasa.gov/tools/sbdb.html?sstr=Sample%20Asteroid%201",
+    "estimated_diameter_m": 150.5,
+    "is_potentially_hazardous": true,
+    "approach_date": "2025-10-10",
+    "relative_velocity_km_s": 15.2,
+    "miss_distance_km": 1500000.0
+  },
+  {
+    "name": "Sample Asteroid 2",
+    "nasa_jpl_url": "https://ssd.jpl.nasa.gov/tools/sbdb.html?sstr=Sample%20Asteroid%202",
+    "estimated_diameter_m": 10.2,
+    "is_potentially_hazardous": false,
+    "approach_date": "2025-10-11",
+    "relative_velocity_km_s": 8.5,
+    "miss_distance_km": 50000.0
+  },
+  {
+    "name": "Sample Asteroid 3",
+    "nasa_jpl_url": "https://ssd.jpl.nasa.gov/tools/sbdb.html?sstr=Sample%20Asteroid%203",
+    "estimated_diameter_m": 800.7,
+    "is_potentially_hazardous": true,
+    "approach_date": "2025-10-12",
+    "relative_velocity_km_s": 25.1,
+    "miss_distance_km": 5000000.0
+  },
+    {
+    "name": "Sample Asteroid 4",
+    "nasa_jpl_url": "https://ssd.jpl.nasa.gov/tools/sbdb.html?sstr=Sample%20Asteroid%204",
+    "estimated_diameter_m": 5.0,
+    "is_potentially_hazardous": false,
+    "approach_date": "2025-10-13",
+    "relative_velocity_km_s": 30.9,
+    "miss_distance_km": 100000.0
+  }
+]
