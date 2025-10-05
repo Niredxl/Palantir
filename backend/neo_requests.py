@@ -48,3 +48,19 @@ def fetch_near_objects(start_date=None, end_date=None):
         except FileNotFoundError:
             print("Cannot locate fallback data")
             return []
+        
+
+def fetch_sentry_data():
+    """Asteroid data using sentry API"""
+    SENTRY_URL = "https://ssd-api.jpl.nasa.gov/sentry.api"
+    params = {"show-removed": "false"}
+
+    try:
+        response = response.get(SENTRY_URL, params = params)
+        response.raise_for_status()
+        data = response.json()
+
+        return data
+    except response.exceptions.RequestException:
+        print("Error Fetching data")
+        return []

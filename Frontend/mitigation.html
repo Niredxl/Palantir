@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palantir - Mitigation Strategy Evaluation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #ff4444;
+            --secondary-color: #ff8800;
+            --success-color: #00ff88;
+            --bg-dark: #0a0e27;
+            --bg-panel: rgba(15, 20, 45, 0.95);
+            --text-light: #ffffff;
+            --text-dim: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, var(--success-color), #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-light);
+            text-decoration: none;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .strategy-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .strategy-panel h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: var(--success-color);
+        }
+
+        .description {
+            color: var(--text-dim);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid var(--success-color);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--text-light);
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--success-color), #00ccff);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 255, 136, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--success-color), #00ccff);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 255, 136, 0.5);
+            border: none;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--success-color), #00ccff);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .results {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .result-item {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+        }
+
+        .result-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--success-color);
+            margin-top: 5px;
+        }
+
+        .success-indicator {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .warning {
+            background: rgba(255, 170, 0, 0.1);
+            border: 2px solid #ffaa00;
+            color: #ffaa00;
+        }
+
+        .danger {
+            background: rgba(255, 68, 68, 0.1);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .asteroid-params {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .formula {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 15px;
+            border-left: 3px solid var(--success-color);
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .visualization-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 500px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 2px solid var(--success-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .visualization-panel.active {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .viz-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--success-color), #00ccff);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #000;
+        }
+
+        .viz-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-viz {
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: #000;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .close-viz:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        #vizCanvas {
+            width: 100%;
+            height: calc(100% - 60px);
+            display: block;
+        }
+
+        .viz-button {
+            padding: 10px 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success-color);
+            border-radius: 6px;
+            color: var(--success-color);
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .viz-button:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="visualization-panel" id="visualizationPanel">
+        <div class="viz-header">
+            <h3 id="vizTitle">3D Deflection Visualization</h3>
+            <button class="close-viz" id="closeViz">×</button>
+        </div>
+        <canvas id="vizCanvas"></canvas>
+    </div>
+    <div class="header">
+        <h1>🛡️ Mitigation Strategy Evaluation</h1>
+        <p class="subtitle">Evaluate planetary defense methods to deflect incoming asteroids</p>
+        <a href="index.html" class="back-button">← Back to Impact Simulator</a>
+    </div>
+
+    <div class="asteroid-params" style="max-width: 1400px; margin: 0 auto 30px auto;">
+        <h3 style="color: var(--text-light); margin-bottom: 10px;">Target Asteroid Parameters</h3>
+        <div class="param-row">
+            <span style="color: var(--text-dim);">Diameter:</span>
+            <span style="color: var(--text-light);" id="targetDiameter">100 m</span>
+        </div>
+        <div class="param-row">
+            <span style="color: var(--text-dim);">Mass:</span>
+            <span style="color: var(--text-light);" id="targetMass">-</span>
+        </div>
+        <div class="param-row">
+            <span style="color: var(--text-dim);">Velocity:</span>
+            <span style="color: var(--text-light);" id="targetVelocity">20 km/s</span>
+        </div>
+        <div class="param-row">
+            <span style="color: var(--text-dim);">Time to Impact:</span>
+            <span style="color: var(--text-light);" id="tti">1 year</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Kinetic Impactor Panel -->
+        <div class="strategy-panel">
+            <h2>🚀 Kinetic Impactor (KI)</h2>
+            <div class="description">
+                <strong>Method:</strong> Ram an uncrewed spacecraft into the asteroid to transfer momentum and alter its trajectory.
+                <br><br>
+                <strong>Best For:</strong> Short warning times (months to years). Validated by NASA's DART mission in 2022.
+                <br><br>
+                <strong>How it works:</strong> The impactor collides with the asteroid, and the resulting momentum transfer (enhanced by ejecta) changes the asteroid's velocity slightly, which compounds over time to create a significant deflection.
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Impactor Mass
+                    <span class="value-display" id="ki-mass-display">500 kg</span>
+                </label>
+                <input type="range" id="ki-mass" min="100" max="10000" value="500" step="100">
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Impactor Velocity
+                    <span class="value-display" id="ki-velocity-display">10 km/s</span>
+                </label>
+                <input type="range" id="ki-velocity" min="5" max="30" value="10" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Momentum Enhancement (β)
+                    <span class="value-display" id="ki-beta-display">3.6</span>
+                </label>
+                <input type="range" id="ki-beta" min="1" max="7" value="3.6" step="0.1">
+                <small style="color: var(--text-dim); font-size: 11px;">
+                    β represents ejecta enhancement factor (DART achieved β ≈ 3.6)
+                </small>
+            </div>
+
+            <div class="control-group">
+                <label>Warning Time (Years Before Impact)</label>
+                <input type="number" id="ki-warning" value="1" min="0.1" max="50" step="0.1">
+            </div>
+
+            <button id="calculate-ki">🎯 Calculate KI Deflection</button>
+            <button class="viz-button" id="visualize-ki" style="display: none;">
+                👁️ Visualize in 3D
+            </button>
+
+            <div class="results" id="ki-results" style="display: none;">
+                <h3 style="color: var(--success-color); margin-bottom: 15px;">Results</h3>
+                
+                <div class="result-item">
+                    <div class="result-label">Velocity Change (Δv)</div>
+                    <div class="result-value" id="ki-delta-v">-</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Deflection Distance</div>
+                    <div class="result-value" id="ki-deflection">-</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Required Lead Time</div>
+                    <div class="result-value" id="ki-lead-time">-</div>
+                </div>
+
+                <div class="formula">
+                    <strong>Formula:</strong><br>
+                    Δv = β × (m<sub>i</sub> × v<sub>i</sub>) / m<sub>a</sub><br>
+                    Deflection = Δv × t × distance_factor
+                </div>
+
+                <div class="success-indicator" id="ki-success">-</div>
+            </div>
+        </div>
+
+        <!-- Gravity Tractor Panel -->
+        <div class="strategy-panel">
+            <h2>🛰️ Gravity Tractor (GT)</h2>
+            <div class="description">
+                <strong>Method:</strong> Use the gravitational attraction between a large spacecraft and the asteroid to slowly pull it off course.
+                <br><br>
+                <strong>Best For:</strong> Long warning times (decades). Gentle, controllable deflection with no risk of fragmentation.
+                <br><br>
+                <strong>How it works:</strong> A massive spacecraft hovers near the asteroid. The gravitational force between them gradually changes the asteroid's orbit over many years.
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Spacecraft Mass
+                    <span class="value-display" id="gt-mass-display">20,000 kg</span>
+                </label>
+                <input type="range" id="gt-mass" min="1000" max="100000" value="20000" step="1000">
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Standoff Distance
+                    <span class="value-display" id="gt-distance-display">100 m</span>
+                </label>
+                <input type="range" id="gt-distance" min="50" max="500" value="100" step="10">
+                <small style="color: var(--text-dim); font-size: 11px;">
+                    Distance between spacecraft and asteroid surface
+                </small>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Number of Tractors
+                    <span class="value-display" id="gt-number-display">1</span>
+                </label>
+                <input type="range" id="gt-number" min="1" max="5" value="1" step="1">
+                <small style="color: var(--text-dim); font-size: 11px;">
+                    Multiple tractors can work in formation for faster deflection
+                </small>
+            </div>
+
+            <div class="control-group">
+                <label>Required Deflection Distance (km)</label>
+                <input type="number" id="gt-required-deflection" value="10000" min="1000" max="100000" step="1000">
+            </div>
+
+            <button id="calculate-gt">⏱️ Calculate GT Duration</button>
+            <button class="viz-button" id="visualize-gt" style="display: none;">
+                👁️ Visualize in 3D
+            </button>
+
+            <div class="results" id="gt-results" style="display: none;">
+                <h3 style="color: var(--success-color); margin-bottom: 15px;">Results</h3>
+                
+                <div class="result-item">
+                    <div class="result-label">Gravitational Force</div>
+                    <div class="result-value" id="gt-force">-</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Acceleration</div>
+                    <div class="result-value" id="gt-acceleration">-</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Required Mission Duration</div>
+                    <div class="result-value" id="gt-duration">-</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Total Deflection Distance</div>
+                    <div class="result-value" id="gt-total-deflection">-</div>
+                </div>
+
+                <div class="formula">
+                    <strong>Formula:</strong><br>
+                    F = G × (m<sub>s</sub> × m<sub>a</sub>) / r²<br>
+                    a = F / m<sub>a</sub><br>
+                    Duration = √(2 × deflection / a)
+                </div>
+
+                <div class="success-indicator" id="gt-success">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Panel -->
+    <div style="max-width: 1400px; margin: 30px auto;">
+        <div class="strategy-panel">
+            <h2>⚖️ Strategy Comparison</h2>
+            <div id="comparison-results" style="display: none;">
+                <table style="width: 100%; color: var(--text-light); font-size: 14px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1);">
+                            <th style="padding: 15px; text-align: left;">Criterion</th>
+                            <th style="padding: 15px; text-align: center;">Kinetic Impactor</th>
+                            <th style="padding: 15px; text-align: center;">Gravity Tractor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Mission Duration</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-ki-duration">-</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-gt-duration">-</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Deflection Achieved</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-ki-deflection">-</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-gt-deflection">-</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Complexity</td>
+                            <td style="padding: 12px; text-align: center;">Low</td>
+                            <td style="padding: 12px; text-align: center;">High</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Fragmentation Risk</td>
+                            <td style="padding: 12px; text-align: center;">Low-Medium</td>
+                            <td style="padding: 12px; text-align: center;">None</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Best Scenario</td>
+                            <td style="padding: 12px; text-align: center;">Short warning</td>
+                            <td style="padding: 12px; text-align: center;">Long warning</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; color: var(--text-dim);">Recommendation</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-ki-recommend">-</td>
+                            <td style="padding: 12px; text-align: center;" id="comp-gt-recommend">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get asteroid parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const asteroidDiameter = parseFloat(urlParams.get('diameter')) || 100;
+        const asteroidVelocity = parseFloat(urlParams.get('velocity')) || 20;
+        const asteroidDensity = parseFloat(urlParams.get('density')) || 3000;
+
+        // Calculate asteroid mass
+        const asteroidRadius = asteroidDiameter / 2;
+        const asteroidVolume = (4/3) * Math.PI * Math.pow(asteroidRadius, 3);
+        const asteroidMass = asteroidVolume * asteroidDensity; // kg
+
+        // Display target parameters
+        document.getElementById('targetDiameter').textContent = `${asteroidDiameter} m`;
+        document.getElementById('targetMass').textContent = `${(asteroidMass / 1e9).toExponential(2)} × 10⁹ kg`;
+        document.getElementById('targetVelocity').textContent = `${asteroidVelocity} km/s`;
+
+        // Constants
+        const G = 6.67430e-11; // Gravitational constant
+        const EARTH_RADIUS = 6371; // km
+
+        // Update displays
+        document.getElementById('ki-mass').addEventListener('input', (e) => {
+            document.getElementById('ki-mass-display').textContent = e.target.value + ' kg';
+        });
+
+        document.getElementById('ki-velocity').addEventListener('input', (e) => {
+            document.getElementById('ki-velocity-display').textContent = e.target.value + ' km/s';
+        });
+
+        document.getElementById('ki-beta').addEventListener('input', (e) => {
+            document.getElementById('ki-beta-display').textContent = e.target.value;
+        });
+
+        document.getElementById('gt-mass').addEventListener('input', (e) => {
+            document.getElementById('gt-mass-display').textContent = (e.target.value / 1000).toFixed(1) + ' tons';
+        });
+
+        document.getElementById('gt-distance').addEventListener('input', (e) => {
+            document.getElementById('gt-distance-display').textContent = e.target.value + ' m';
+        });
+
+        document.getElementById('gt-number').addEventListener('input', (e) => {
+            document.getElementById('gt-number-display').textContent = e.target.value;
+        });
+
+        // Kinetic Impactor Calculation
+        document.getElementById('calculate-ki').addEventListener('click', () => {
+            const impactorMass = parseFloat(document.getElementById('ki-mass').value);
+            const impactorVelocity = parseFloat(document.getElementById('ki-velocity').value) * 1000; // Convert to m/s
+            const beta = parseFloat(document.getElementById('ki-beta').value);
+            const warningTime = parseFloat(document.getElementById('ki-warning').value);
+
+            // Calculate momentum transfer
+            const momentum = impactorMass * impactorVelocity;
+            
+            // Calculate velocity change with momentum enhancement
+            const deltaV = (beta * momentum) / asteroidMass; // m/s
+
+            // Calculate deflection distance
+            // Δx = Δv × t, where t is time to impact
+            const timeSeconds = warningTime * 365.25 * 24 * 3600;
+            const deflectionMeters = deltaV * timeSeconds;
+            const deflectionKm = deflectionMeters / 1000;
+
+            // Required deflection is approximately Earth's radius for a miss
+            const requiredDeflection = EARTH_RADIUS; // km
+            const leadTimeNeeded = (requiredDeflection * 1000) / (deltaV * 365.25 * 24 * 3600);
+
+            // Display results
+            document.getElementById('ki-delta-v').textContent = `${(deltaV * 100).toFixed(4)} cm/s`;
+            document.getElementById('ki-deflection').textContent = `${deflectionKm.toFixed(0)} km`;
+            document.getElementById('ki-lead-time').textContent = `${leadTimeNeeded.toFixed(2)} years minimum`;
+
+            const kiSuccess = document.getElementById('ki-success');
+            if (deflectionKm >= requiredDeflection) {
+                kiSuccess.className = 'success-indicator success';
+                kiSuccess.textContent = `✅ SUCCESS! Deflection of ${deflectionKm.toFixed(0)} km exceeds required ${requiredDeflection} km`;
+            } else if (deflectionKm >= requiredDeflection * 0.5) {
+                kiSuccess.className = 'success-indicator warning';
+                kiSuccess.textContent = `⚠️ PARTIAL - ${(deflectionKm / requiredDeflection * 100).toFixed(0)}% of required deflection achieved`;
+            } else {
+                kiSuccess.className = 'success-indicator danger';
+                kiSuccess.textContent = `❌ INSUFFICIENT - Only ${(deflectionKm / requiredDeflection * 100).toFixed(0)}% of required deflection. Need more warning time or larger impactor.`;
+            }
+
+            document.getElementById('ki-results').style.display = 'block';
+            document.getElementById('visualize-ki').style.display = 'inline-block';
+            
+            // Store for comparison
+            window.kiDeflection = deflectionKm;
+            window.kiDuration = 'Instantaneous impact';
+            window.kiData = { impactorMass, impactorVelocity, beta, deltaV, deflectionKm };
+            updateComparison();
+        });
+
+        // Gravity Tractor Calculation
+        document.getElementById('calculate-gt').addEventListener('click', () => {
+            const spacecraftMass = parseFloat(document.getElementById('gt-mass').value);
+            const standoffDistance = parseFloat(document.getElementById('gt-distance').value) + asteroidRadius; // Total distance from center
+            const numTractors = parseInt(document.getElementById('gt-number').value);
+            const requiredDeflection = parseFloat(document.getElementById('gt-required-deflection').value) * 1000; // Convert to meters
+
+            // Calculate gravitational force (single tractor)
+            const distance = standoffDistance; // meters
+            const force = G * (spacecraftMass * asteroidMass) / Math.pow(distance, 2); // Newtons
+
+            // Total force with multiple tractors
+            const totalForce = force * numTractors;
+
+            // Calculate acceleration
+            const acceleration = totalForce / asteroidMass; // m/s²
+
+            // Calculate required duration
+            // Using s = (1/2) × a × t², solve for t
+            const durationSeconds = Math.sqrt((2 * requiredDeflection) / acceleration);
+            const durationYears = durationSeconds / (365.25 * 24 * 3600);
+
+            // Calculate velocity change
+            const finalVelocity = acceleration * durationSeconds;
+
+            // Display results
+            document.getElementById('gt-force').textContent = `${(totalForce * 1e6).toExponential(2)} µN`;
+            document.getElementById('gt-acceleration').textContent = `${(acceleration * 1e9).toExponential(2)} nm/s²`;
+            document.getElementById('gt-duration').textContent = `${durationYears.toFixed(2)} years`;
+            document.getElementById('gt-total-deflection').textContent = `${(requiredDeflection / 1000).toFixed(0)} km`;
+
+            const gtSuccess = document.getElementById('gt-success');
+            if (durationYears <= 1) {
+                gtSuccess.className = 'success-indicator success';
+                gtSuccess.textContent = `✅ EXCELLENT! Only ${durationYears.toFixed(2)} years needed`;
+            } else if (durationYears <= 10) {
+                gtSuccess.className = 'success-indicator success';
+                gtSuccess.textContent = `✅ FEASIBLE! ${durationYears.toFixed(2)} years mission duration is achievable`;
+            } else if (durationYears <= 30) {
+                gtSuccess.className = 'success-indicator warning';
+                gtSuccess.textContent = `⚠️ CHALLENGING - ${durationYears.toFixed(2)} years is very long but possible`;
+            } else {
+                gtSuccess.className = 'success-indicator danger';
+                gtSuccess.textContent = `❌ IMPRACTICAL - ${durationYears.toFixed(2)} years exceeds reasonable mission duration. Consider KI instead.`;
+            }
+
+            document.getElementById('gt-results').style.display = 'block';
+            document.getElementById('visualize-gt').style.display = 'inline-block';
+            
+            // Store for comparison
+            window.gtDeflection = requiredDeflection / 1000;
+            window.gtDuration = `${durationYears.toFixed(2)} years`;
+            window.gtData = { spacecraftMass, standoffDistance, numTractors, totalForce, durationYears };
+            updateComparison();
+        });
+
+        function updateComparison() {
+            if (window.kiDeflection !== undefined || window.gtDeflection !== undefined) {
+                document.getElementById('comparison-results').style.display = 'block';
+                
+                if (window.kiDeflection !== undefined) {
+                    document.getElementById('comp-ki-duration').textContent = 'Instantaneous';
+                    document.getElementById('comp-ki-deflection').textContent = `${window.kiDeflection.toFixed(0)} km`;
+                    
+                    const warningTime = parseFloat(document.getElementById('ki-warning').value);
+                    if (warningTime < 2) {
+                        document.getElementById('comp-ki-recommend').innerHTML = '✅ <strong>Recommended</strong>';
+                        document.getElementById('comp-ki-recommend').style.color = 'var(--success-color)';
+                    } else {
+                        document.getElementById('comp-ki-recommend').textContent = 'Viable';
+                        document.getElementById('comp-ki-recommend').style.color = 'var(--text-light)';
+                    }
+                }
+                
+                if (window.gtDeflection !== undefined) {
+                    document.getElementById('comp-gt-duration').textContent = window.gtDuration;
+                    document.getElementById('comp-gt-deflection').textContent = `${window.gtDeflection.toFixed(0)} km`;
+                    
+                    const duration = parseFloat(window.gtDuration);
+                    if (duration > 2 && duration < 15) {
+                        document.getElementById('comp-gt-recommend').innerHTML = '✅ <strong>Recommended</strong>';
+                        document.getElementById('comp-gt-recommend').style.color = 'var(--success-color)';
+                    } else if (duration <= 2) {
+                        document.getElementById('comp-gt-recommend').textContent = 'Unnecessary (KI faster)';
+                        document.getElementById('comp-gt-recommend').style.color = 'var(--text-dim)';
+                    } else {
+                        document.getElementById('comp-gt-recommend').textContent = 'Too slow';
+                        document.getElementById('comp-gt-recommend').style.color = 'var(--primary-color)';
+                    }
+                }
+            }
+        }
+
+        // DART Mission Preset
+        function loadDARTPreset() {
+            document.getElementById('ki-mass').value = 570;
+            document.getElementById('ki-velocity').value = 6.6;
+            document.getElementById('ki-beta').value = 3.6;
+            document.getElementById('ki-mass-display').textContent = '570 kg';
+            document.getElementById('ki-velocity-display').textContent = '6.6 km/s';
+            document.getElementById('ki-beta-display').textContent = '3.6';
+        }
+
+        // Add preset button
+        const dartButton = document.createElement('button');
+        dartButton.textContent = '🎯 Load DART Mission Parameters';
+        dartButton.style.background = 'rgba(255, 255, 255, 0.1)';
+        dartButton.style.marginTop = '10px';
+        dartButton.onclick = loadDARTPreset;
+        document.getElementById('calculate-ki').parentElement.insertBefore(dartButton, document.getElementById('calculate-ki'));
+
+        // ===== 3D VISUALIZATION =====
+        let vizScene, vizCamera, vizRenderer, vizAnimationId;
+        const vizPanel = document.getElementById('visualizationPanel');
+        const vizCanvas = document.getElementById('vizCanvas');
+
+        function init3DViz() {
+            vizScene = new THREE.Scene();
+            vizScene.background = new THREE.Color(0x000510);
+
+            vizCamera = new THREE.PerspectiveCamera(60, 700 / 440, 0.1, 10000);
+            vizCamera.position.set(0, 300, 800);
+            vizCamera.lookAt(0, 0, 0);
+
+            vizRenderer = new THREE.WebGLRenderer({ canvas: vizCanvas, antialias: true });
+            vizRenderer.setSize(700, 440);
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 1);
+            vizScene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(200, 200, 200);
+            vizScene.add(sunLight);
+
+            // Add stars
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
+            const starsVertices = [];
+            for (let i = 0; i < 3000; i++) {
+                starsVertices.push(
+                    (Math.random() - 0.5) * 3000,
+                    (Math.random() - 0.5) * 3000,
+                    (Math.random() - 0.5) * 3000
+                );
+            }
+            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            vizScene.add(stars);
+        }
+
+        function visualizeKI() {
+            if (!vizScene) init3DViz();
+            
+            // Clear scene
+            while(vizScene.children.length > 4) vizScene.children.pop();
+
+            document.getElementById('vizTitle').textContent = '🚀 Kinetic Impactor Deflection';
+            vizPanel.classList.add('active');
+
+            // Create Earth
+            const earthGeom = new THREE.SphereGeometry(50, 32, 32);
+            const earthMat = new THREE.MeshPhongMaterial({ color: 0x2266ff, emissive: 0x001133 });
+            const earth = new THREE.Mesh(earthGeom, earthMat);
+            vizScene.add(earth);
+
+            // Create asteroid (original trajectory - red)
+            const astGeom = new THREE.SphereGeometry(asteroidDiameter / 30, 16, 16);
+            const originalAst = new THREE.Mesh(astGeom, new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+            vizScene.add(originalAst);
+
+            // Create deflected asteroid (green)
+            const deflectedAst = new THREE.Mesh(astGeom, new THREE.MeshPhongMaterial({ color: 0x00ff00 }));
+            vizScene.add(deflectedAst);
+
+            // Create impactor
+            const impactorGeom = new THREE.ConeGeometry(5, 15, 8);
+            const impactor = new THREE.Mesh(impactorGeom, new THREE.MeshPhongMaterial({ 
+                color: 0xffaa00,
+                emissive: 0xff6600,
+                emissiveIntensity: 0.5
+            }));
+            vizScene.add(impactor);
+
+            // Trajectories
+            const originalPath = [];
+            const deflectedPath = [];
+            const deflectionAngle = window.kiData.deflectionKm / 10000; // Exaggerated for visibility
+
+            for (let i = 0; i <= 100; i++) {
+                const t = i / 100;
+                const z = 400 - t * 450;
+                originalPath.push(new THREE.Vector3(0, 0, z));
+                deflectedPath.push(new THREE.Vector3(t * deflectionAngle * 100, 0, z));
+            }
+
+            const originalLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(originalPath),
+                new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })
+            );
+            vizScene.add(originalLine);
+
+            const deflectedLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(deflectedPath),
+                new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 })
+            );
+            vizScene.add(deflectedLine);
+
+            // Animate
+            let frame = 0;
+            function animateKI() {
+                vizAnimationId = requestAnimationFrame(animateKI);
+                frame++;
+
+                const progress = (frame % 200) / 200;
+                const index = Math.floor(progress * originalPath.length);
+
+                if (index < originalPath.length) {
+                    originalAst.position.copy(originalPath[index]);
+                    deflectedAst.position.copy(deflectedPath[index]);
+                    
+                    // Show impactor collision at 30% progress
+                    if (progress > 0.25 && progress < 0.35) {
+                        impactor.position.set(deflectedPath[index].x - 20, 0, deflectedPath[index].z);
+                        impactor.visible = true;
+                        impactor.rotation.z = -Math.PI / 4;
+                    } else {
+                        impactor.visible = false;
+                    }
+                }
+
+                earth.rotation.y += 0.002;
+                vizCamera.position.x = Math.sin(frame * 0.003) * 100;
+                vizRenderer.render(vizScene, vizCamera);
+            }
+            animateKI();
+        }
+
+        function visualizeGT() {
+            if (!vizScene) init3DViz();
+            
+            while(vizScene.children.length > 4) vizScene.children.pop();
+
+            document.getElementById('vizTitle').textContent = '🛰️ Gravity Tractor Deflection';
+            vizPanel.classList.add('active');
+
+            // Create Earth
+            const earthGeom = new THREE.SphereGeometry(50, 32, 32);
+            const earthMat = new THREE.MeshPhongMaterial({ color: 0x2266ff, emissive: 0x001133 });
+            const earth = new THREE.Mesh(earthGeom, earthMat);
+            vizScene.add(earth);
+
+            // Create asteroid
+            const astGeom = new THREE.SphereGeometry(asteroidDiameter / 30, 16, 16);
+            const asteroid = new THREE.Mesh(astGeom, new THREE.MeshPhongMaterial({ color: 0xff6600 }));
+            vizScene.add(asteroid);
+
+            // Create gravity tractors
+            const tractors = [];
+            const numTractors = window.gtData.numTractors;
+            for (let i = 0; i < numTractors; i++) {
+                const tractorGeom = new THREE.BoxGeometry(8, 8, 12);
+                const tractor = new THREE.Mesh(tractorGeom, new THREE.MeshPhongMaterial({ 
+                    color: 0x00ff88,
+                    emissive: 0x00ff88,
+                    emissiveIntensity: 0.3
+                }));
+                vizScene.add(tractor);
+                tractors.push(tractor);
+            }
+
+            // Create gravitational field lines
+            const fieldLines = [];
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const points = [];
+                for (let r = asteroidDiameter / 30; r < 100; r += 5) {
+                    points.push(new THREE.Vector3(
+                        Math.cos(angle) * r,
+                        Math.sin(angle) * r * 0.5,
+                        0
+                    ));
+                }
+                const line = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints(points),
+                    new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.2 })
+                );
+                vizScene.add(line);
+                fieldLines.push(line);
+            }
+
+            // Animate
+            let frame = 0;
+            let deflection = 0;
+            function animateGT() {
+                vizAnimationId = requestAnimationFrame(animateGT);
+                frame++;
+
+                // Slowly deflect asteroid
+                deflection += 0.5;
+                asteroid.position.x = deflection;
+                asteroid.position.z = 300 - frame * 0.5;
+
+                // Position tractors around asteroid
+                tractors.forEach((tractor, i) => {
+                    const angle = (i / numTractors) * Math.PI * 2 + frame * 0.01;
+                    const dist = window.gtData.standoffDistance / 5;
+                    tractor.position.set(
+                        asteroid.position.x + Math.cos(angle) * dist,
+                        Math.sin(angle) * dist,
+                        asteroid.position.z
+                    );
+                    tractor.lookAt(asteroid.position);
+                });
+
+                // Update field lines
+                fieldLines.forEach((line, i) => {
+                    line.position.copy(asteroid.position);
+                    line.rotation.z = frame * 0.005;
+                });
+
+                earth.rotation.y += 0.002;
+                vizCamera.position.x = Math.sin(frame * 0.002) * 150 + deflection;
+                vizCamera.lookAt(asteroid.position);
+                vizRenderer.render(vizScene, vizCamera);
+
+                if (frame > 600) {
+                    frame = 0;
+                    deflection = 0;
+                }
+            }
+            animateGT();
+        }
+
+        function closeViz() {
+            vizPanel.classList.remove('active');
+            if (vizAnimationId) {
+                cancelAnimationFrame(vizAnimationId);
+                vizAnimationId = null;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('closeViz').addEventListener('click', closeViz);
+        document.getElementById('visualize-ki').addEventListener('click', visualizeKI);
+        document.getElementById('visualize-gt').addEventListener('click', visualizeGT);
+    </script>
+</body>
+</html>

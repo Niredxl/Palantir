@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palantir - Meteor Trajectory Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #ff4444;
+            --secondary-color: #ff8800;
+            --bg-dark: #0a0e27;
+            --bg-panel: rgba(15, 20, 45, 0.95);
+            --text-light: #ffffff;
+            --text-dim: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: var(--text-light);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .info-overlay {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            max-width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        .back-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+        }
+
+        .timeline {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 300px;
+            text-align: center;
+        }
+
+        .phase {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+
+        .time-remaining {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        .legend {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="info-overlay">
+        <h1>🌠 Trajectory Data</h1>
+        <div class="stat">
+            <div class="stat-label">Asteroid Name</div>
+            <div class="stat-value" id="asteroidName">-</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Diameter</div>
+            <div class="stat-value" id="diameter">-</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Velocity</div>
+            <div class="stat-value" id="velocity">-</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Impact Angle</div>
+            <div class="stat-value" id="angle">-</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Impact Energy</div>
+            <div class="stat-value" id="energy">-</div>
+        </div>
+        <button class="back-button" onclick="window.location.href='index.html'">← Back to Simulator</button>
+    </div>
+
+    <div class="legend">
+        <h3 style="font-size: 14px; margin-bottom: 15px;">Legend</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #87CEEB;"></div>
+            <span>Earth Atmosphere</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00ff00;"></div>
+            <span>Earth Surface</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(45deg, #ff6600, #ff0000);"></div>
+            <span>Asteroid</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffff00;"></div>
+            <span>Trajectory Path</span>
+        </div>
+    </div>
+
+    <div class="timeline">
+        <div class="phase" id="phase">Space Approach</div>
+        <div class="time-remaining" id="timeRemaining">Time to Impact: --</div>
+    </div>
+
+    <script>
+        // Get data from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const diameter = parseFloat(urlParams.get('diameter')) || 100;
+        const velocity = parseFloat(urlParams.get('velocity')) || 20;
+        const angle = parseFloat(urlParams.get('angle')) || 45;
+        const density = parseFloat(urlParams.get('density')) || 3000;
+        const energy = parseFloat(urlParams.get('energy')) || 0;
+
+        // Update info panel
+        document.getElementById('asteroidName').textContent = `NEO-${Date.now().toString().slice(-6)}`;
+        document.getElementById('diameter').textContent = `${diameter} meters`;
+        document.getElementById('velocity').textContent = `${velocity} km/s`;
+        document.getElementById('angle').textContent = `${angle}°`;
+        document.getElementById('energy').textContent = energy > 0 ? `${energy.toExponential(2)} MT` : '-';
+
+        // Three.js setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 200, 500);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Create Earth with realistic texture
+        const earthGeometry = new THREE.SphereGeometry(100, 64, 64);
+        const earthMaterial = new THREE.MeshPhongMaterial({
+            shininess: 10,
+            specular: 0x222222
+        });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        
+        // Load real Earth texture from CDN
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+            'https://unpkg.com/three-globe@2.24.9/example/img/earth-blue-marble.jpg',
+            function(texture) {
+                earthMaterial.map = texture;
+                earthMaterial.needsUpdate = true;
+                console.log('Real Earth texture loaded successfully');
+            },
+            undefined,
+            function(error) {
+                console.log('Loading fallback Earth texture');
+                // High-quality fallback procedural texture
+                const textureCanvas = document.createElement('canvas');
+                textureCanvas.width = 1024;
+                textureCanvas.height = 512;
+                const ctx = textureCanvas.getContext('2d');
+                
+                for (let y = 0; y < 512; y++) {
+                    for (let x = 0; x < 1024; x++) {
+                        const noise = Math.random() * 15;
+                        const lat = (y / 512) * 180 - 90;
+                        const lng = (x / 1024) * 360 - 180;
+                        
+                        const isLand = (
+                            (lng > -170 && lng < -50 && lat > 15 && lat < 75) ||
+                            (lng > -82 && lng < -34 && lat > -56 && lat < 13) ||
+                            (lng > -10 && lng < 40 && lat > 35 && lat < 71) ||
+                            (lng > -18 && lng < 52 && lat > -35 && lat < 38) ||
+                            (lng > 26 && lng < 180 && lat > -10 && lat < 75) ||
+                            (lng > 113 && lng < 154 && lat > -44 && lat < -10) ||
+                            (lat < -60 || (lng > -73 && lng < -12 && lat > 60))
+                        );
+                        
+                        if (isLand) {
+                            const altitude = Math.sin(lat * 0.1) * Math.cos(lng * 0.1);
+                            if (altitude > 0.3) {
+                                ctx.fillStyle = `rgb(${139 + noise}, ${90 + noise}, ${43 + noise})`;
+                            } else if (Math.abs(lat) < 30 && lng > -20 && lng < 50) {
+                                ctx.fillStyle = `rgb(${210 + noise}, ${180 + noise}, ${140 + noise})`;
+                            } else if (lat > 60 || lat < -60) {
+                                ctx.fillStyle = `rgb(${240 + noise}, ${240 + noise}, ${255})`;
+                            } else {
+                                ctx.fillStyle = `rgb(${34 + noise}, ${139 + noise}, ${34 + noise})`;
+                            }
+                        } else {
+                            const depth = Math.abs(Math.sin(lat * 0.3) * Math.cos(lng * 0.2));
+                            const blue = Math.floor(180 + depth * 40 + noise);
+                            ctx.fillStyle = `rgb(${15 + noise * 0.5}, ${40 + noise * 0.5}, ${blue})`;
+                        }
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+                
+                const earthTexture = new THREE.CanvasTexture(textureCanvas);
+                earthMaterial.map = earthTexture;
+                earthMaterial.needsUpdate = true;
+            }
+        );
+        
+        scene.add(earth);
+
+        // Create atmosphere
+        const atmosphereGeometry = new THREE.SphereGeometry(120, 64, 64);
+        const atmosphereMaterial = new THREE.MeshPhongMaterial({
+            color: 0x87CEEB,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.BackSide
+        });
+        const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+        scene.add(atmosphere);
+
+        // Create asteroid with rocky texture
+        const asteroidGeometry = new THREE.SphereGeometry(diameter / 20, 16, 16);
+        
+        // Create rocky texture for asteroid
+        const asteroidCanvas = document.createElement('canvas');
+        asteroidCanvas.width = 128;
+        asteroidCanvas.height = 128;
+        const astCtx = asteroidCanvas.getContext('2d');
+        
+        // Create rocky pattern
+        for (let y = 0; y < 128; y++) {
+            for (let x = 0; x < 128; x++) {
+                const noise = Math.random() * 60;
+                const gray = 80 + noise;
+                astCtx.fillStyle = `rgb(${gray}, ${gray * 0.7}, ${gray * 0.5})`;
+                astCtx.fillRect(x, y, 1, 1);
+            }
+        }
+        
+        const asteroidTexture = new THREE.CanvasTexture(asteroidCanvas);
+        const asteroidMaterial = new THREE.MeshPhongMaterial({
+            map: asteroidTexture,
+            color: 0xaa6644,
+            emissive: 0x331100,
+            emissiveIntensity: 0.3,
+            roughness: 0.9
+        });
+        const asteroid = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
+        scene.add(asteroid);
+
+        // Create trajectory line
+        const trajectoryPoints = [];
+        const angleRad = (angle * Math.PI) / 180;
+        const startDistance = 800;
+        
+        for (let i = 0; i <= 100; i++) {
+            const t = i / 100;
+            const distance = startDistance * (1 - t);
+            const height = distance * Math.sin(angleRad);
+            const horizontal = distance * Math.cos(angleRad);
+            
+            trajectoryPoints.push(new THREE.Vector3(horizontal, height, 0));
+        }
+
+        const trajectoryGeometry = new THREE.BufferGeometry().setFromPoints(trajectoryPoints);
+        const trajectoryMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xffff00,
+            linewidth: 2
+        });
+        const trajectoryLine = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
+        scene.add(trajectoryLine);
+
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+        sunLight.position.set(500, 500, 500);
+        scene.add(sunLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+        pointLight.position.set(0, 0, 300);
+        scene.add(pointLight);
+
+        // Add stars
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+        const starsVertices = [];
+
+        for (let i = 0; i < 5000; i++) {
+            const x = (Math.random() - 0.5) * 4000;
+            const y = (Math.random() - 0.5) * 4000;
+            const z = (Math.random() - 0.5) * 4000;
+            starsVertices.push(x, y, z);
+        }
+
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // Animation
+        let time = 0;
+        const totalTime = 10; // seconds for full trajectory
+        let impacted = false;
+        const phases = [
+            { time: 0, name: 'Space Approach', distance: 'Entering atmosphere' },
+            { time: 3, name: 'Atmospheric Entry', distance: 'Heating up' },
+            { time: 6, name: 'Terminal Phase', distance: 'Final approach' },
+            { time: 9, name: 'Impact Imminent', distance: 'Seconds to impact' }
+        ];
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            time += 0.016; // ~60fps
+            const progress = Math.min(time / totalTime, 1);
+
+            // Update asteroid position
+            if (progress < 1) {
+                const index = Math.floor(progress * trajectoryPoints.length);
+                const point = trajectoryPoints[index];
+                asteroid.position.copy(point);
+
+                // Rotate asteroid
+                asteroid.rotation.x += 0.05;
+                asteroid.rotation.y += 0.03;
+
+                // Update timeline
+                const timeRemaining = Math.max(0, totalTime - time);
+                document.getElementById('timeRemaining').textContent = `Time to Impact: ${timeRemaining.toFixed(1)}s`;
+
+                // Update phase
+                const currentPhase = phases.filter(p => time >= p.time).pop();
+                if (currentPhase) {
+                    document.getElementById('phase').textContent = currentPhase.name;
+                }
+
+                // Create heat trail
+                if (progress > 0.3 && Math.random() < 0.3) {
+                    const trailGeometry = new THREE.SphereGeometry(diameter / 40, 8, 8);
+                    const trailMaterial = new THREE.MeshBasicMaterial({
+                        color: Math.random() < 0.5 ? 0xff6600 : 0xffaa00,
+                        transparent: true,
+                        opacity: 0.6
+                    });
+                    const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+                    trail.position.copy(asteroid.position);
+                    scene.add(trail);
+
+                    setTimeout(() => scene.remove(trail), 500);
+                }
+            } else if (!impacted) {
+                // Impact!
+                impacted = true;
+                document.getElementById('phase').textContent = '💥 IMPACT!';
+                document.getElementById('timeRemaining').textContent = 'Collision occurred';
+                
+                // INTENSE FLASH EFFECT
+                const flashOverlay = document.createElement('div');
+                flashOverlay.style.position = 'fixed';
+                flashOverlay.style.top = '0';
+                flashOverlay.style.left = '0';
+                flashOverlay.style.width = '100%';
+                flashOverlay.style.height = '100%';
+                flashOverlay.style.background = 'radial-gradient(circle, #ffffff 0%, #ffaa00 30%, #ff0000 100%)';
+                flashOverlay.style.opacity = '1';
+                flashOverlay.style.zIndex = '9999';
+                flashOverlay.style.pointerEvents = 'none';
+                document.body.appendChild(flashOverlay);
+                
+                // Multiple flash pulses for more dramatic effect
+                let flashCount = 0;
+                const flashInterval = setInterval(() => {
+                    flashCount++;
+                    if (flashCount % 2 === 0) {
+                        flashOverlay.style.opacity = '1';
+                        flashOverlay.style.background = '#ffffff';
+                    } else {
+                        flashOverlay.style.opacity = '0.7';
+                        flashOverlay.style.background = 'radial-gradient(circle, #ffff00 0%, #ff6600 50%, #ff0000 100%)';
+                    }
+                    
+                    if (flashCount >= 4) {
+                        clearInterval(flashInterval);
+                        flashOverlay.style.transition = 'opacity 0.8s';
+                        flashOverlay.style.opacity = '0';
+                        setTimeout(() => document.body.removeChild(flashOverlay), 800);
+                    }
+                }, 150);
+                
+                // ENHANCED BOOM SOUND (web audio)
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const createBoom = () => {
+                    const now = audioCtx.currentTime;
+                    
+                    // Initial crack/bang
+                    const crackOsc = audioCtx.createOscillator();
+                    const crackGain = audioCtx.createGain();
+                    crackOsc.type = 'square';
+                    crackOsc.frequency.setValueAtTime(200, now);
+                    crackOsc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+                    crackGain.gain.setValueAtTime(0.8, now);
+                    crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    crackOsc.connect(crackGain);
+                    crackGain.connect(audioCtx.destination);
+                    crackOsc.start(now);
+                    crackOsc.stop(now + 0.1);
+                    
+                    // Low frequency rumble
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(60, now);
+                    oscillator.frequency.exponentialRampToValueAtTime(15, now + 1.2);
+                    gainNode.gain.setValueAtTime(1, now + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.start(now + 0.05);
+                    oscillator.stop(now + 1.5);
+                    
+                    // Enhanced noise for impact
+                    const bufferSize = audioCtx.sampleRate * 0.8;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+                    }
+                    
+                    const noiseSource = audioCtx.createBufferSource();
+                    const noiseGain = audioCtx.createGain();
+                    noiseSource.buffer = buffer;
+                    noiseGain.gain.setValueAtTime(0.6, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                    noiseSource.connect(noiseGain);
+                    noiseGain.connect(audioCtx.destination);
+                    noiseSource.start(now);
+                };
+                
+                createBoom();
+                
+                // Create massive explosion
+                for (let i = 0; i < 200; i++) {
+                    const particleGeometry = new THREE.SphereGeometry(3, 8, 8);
+                    const particleMaterial = new THREE.MeshBasicMaterial({
+                        color: Math.random() < 0.3 ? 0xffff00 : (Math.random() < 0.5 ? 0xff3300 : 0xffaa00)
+                    });
+                    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                    
+                    particle.position.copy(asteroid.position);
+                    particle.userData = {
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * 15,
+                            (Math.random() - 0.5) * 15,
+                            (Math.random() - 0.5) * 15
+                        )
+                    };
+                    
+                    scene.add(particle);
+                    
+                    setTimeout(() => scene.remove(particle), 3000);
+                }
+                
+                // Create shockwave ring
+                const ringGeometry = new THREE.RingGeometry(1, 5, 32);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff6600,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const shockwave = new THREE.Mesh(ringGeometry, ringMaterial);
+                shockwave.position.copy(asteroid.position);
+                shockwave.lookAt(0, 0, 0);
+                scene.add(shockwave);
+                
+                // Animate shockwave
+                let shockwaveScale = 1;
+                const shockwaveInterval = setInterval(() => {
+                    shockwaveScale += 5;
+                    shockwave.scale.set(shockwaveScale, shockwaveScale, 1);
+                    shockwave.material.opacity -= 0.05;
+                    
+                    if (shockwave.material.opacity <= 0) {
+                        scene.remove(shockwave);
+                        clearInterval(shockwaveInterval);
+                    }
+                }, 50);
+            }
+
+            // Rotate Earth slowly
+            earth.rotation.y += 0.001;
+            atmosphere.rotation.y += 0.001;
+
+            // Camera orbit
+            const cameraAngle = time * 0.1;
+            camera.position.x = Math.cos(cameraAngle) * 500;
+            camera.position.z = Math.sin(cameraAngle) * 500;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

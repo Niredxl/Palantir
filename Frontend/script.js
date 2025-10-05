@@ -78,7 +78,7 @@ function animate() {
         const distanceSq = distanceVector.lengthSq();
 
         const earthRadius = earth.geometry.parameters.radius;
-        if (distanceSq < earthRadius * earthRadius) {
+        if (distanceSq < earthRadius * earthRadius) {   
             scene.remove(asteroid.object);
             asteroids.splice(i, 1);
             if (currentTrajectoryLine && asteroids.length === 0) {

@@ -119,6 +119,14 @@ body {
   color: var(--text-secondary);
 }
 
+.ribbon-header { position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; height: 60px; background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); backdrop-filter: blur(10px); z-index: 2000; }
+.logo h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+.logo h1 i { color: var(--accent-glow); animation: pulse 4s infinite; }
+.tabs { display: flex; gap: 0.5rem; }
+.tab-btn { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease-in-out; display: flex; align-items: center; gap: 0.5rem; }
+.tab-btn:hover { background-color: rgba(127, 90, 240, 0.2); color: var(--text-primary); }
+.tab-btn.active { background-color: var(--accent-glow); color: white; border-color: var(--accent-glow); box-shadow: 0 0 10px rgba(127, 90, 240, 0.5); }
+
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.1);
   border-top: 4px solid var(--accent-glow);
