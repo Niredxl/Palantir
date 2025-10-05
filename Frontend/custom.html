@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palantir - Asteroid Impact Simulator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #5518e5;
+            --secondary-color: #6a15ab;
+            --bg-dark: #0a0e27;
+            --bg-panel: rgba(15, 20, 45, 0.95);
+            --text-light: #ffffff;
+            --text-dim: #a0a0a0;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: var(--text-light);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            max-width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--text-light);
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 68, 68, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 68, 68, 0.5);
+            border: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        select option {
+            background: var(--bg-dark);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .preset-button {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .preset-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            max-width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .info-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .stat {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        .stat-unit {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-left: 5px;
+        }
+
+        .instruction {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 999;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.02); }
+        }
+
+        .instruction h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .instruction p {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .energy-display {
+            font-size: 14px;
+            padding: 10px;
+            background: rgba(255, 136, 0, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid var(--secondary-color);
+            margin-top: 10px;
+        }
+
+        .impact-marker {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(255, 68, 68, 1) 0%, rgba(255, 136, 0, 0) 70%);
+            border-radius: 50%;
+            animation: impact-pulse 1s ease-out;
+        }
+
+        @keyframes impact-pulse {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="instruction" id="instruction">
+        <h2>🌍 Drop an Asteroid</h2>
+        <p>Click anywhere on the map to see the devastating impact of your asteroid</p>
+    </div>
+
+    <div class="control-panel">
+        <h1>⚡ Palantir</h1>
+        <p class="subtitle">Asteroid Impact Simulator</p>
+
+        <div class="control-group">
+            <label>
+                Asteroid Diameter
+                <span class="value-display" id="diameter-display">100 m</span>
+            </label>
+            <input type="range" id="diameter" min="10" max="10000" value="100" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Impact Velocity
+                <span class="value-display" id="velocity-display">20 km/s</span>
+            </label>
+            <input type="range" id="velocity" min="11" max="72" value="20" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Impact Angle
+                <span class="value-display" id="angle-display">45°</span>
+            </label>
+            <input type="range" id="angle" min="15" max="90" value="45" step="5">
+        </div>
+
+        <div class="control-group">
+            <label>Asteroid Composition</label>
+            <select id="composition">
+                <option value="7800">Iron (7,800 kg/m³)</option>
+                <option value="3000">Stone (3,000 kg/m³)</option>
+                <option value="1000">Ice (1,000 kg/m³)</option>
+                <option value="2000">Carbon-rich (2,000 kg/m³)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Impact Location</label>
+            <select id="target-type">
+                <option value="land">Land</option>
+                <option value="water">Water (Ocean)</option>
+            </select>
+        </div>
+
+        <button id="random-btn">🎲 Random Asteroid</button>
+
+        <div class="control-group" style="margin-top: 20px;">
+            <label>Famous Asteroids</label>
+            <button class="preset-button" data-preset="tunguska">Tunguska Event (1908)</button>
+            <button class="preset-button" data-preset="chelyabinsk">Chelyabinsk (2013)</button>
+            <button class="preset-button" data-preset="barringer">Barringer Crater</button>
+            <button class="preset-button" data-preset="chicxulub">Chicxulub (Dinosaurs)</button>
+        </div>
+    </div>
+
+    <div class="info-panel">
+        <h2>📊 Impact Results</h2>
+        <div id="results">
+            <div class="stat">
+                <div class="stat-label">Impact Energy</div>
+                <div class="stat-value">
+                    <span id="energy">-</span>
+                    <span class="stat-unit">Megatons</span>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Crater Diameter</div>
+                <div class="stat-value">
+                    <span id="crater">-</span>
+                    <span class="stat-unit">meters</span>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Fireball Radius</div>
+                <div class="stat-value">
+                    <span id="fireball">-</span>
+                    <span class="stat-unit">km</span>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Air Blast Radius</div>
+                <div class="stat-value">
+                    <span id="blast">-</span>
+                    <span class="stat-unit">km</span>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Thermal Radiation</div>
+                <div class="stat-value">
+                    <span id="thermal">-</span>
+                    <span class="stat-unit">km</span>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Seismic Effect</div>
+                <div class="stat-value">
+                    <span id="seismic">-</span>
+                    <span class="stat-unit">Richter</span>
+                </div>
+            </div>
+
+            <div class="energy-display">
+                <strong>Energy Comparison:</strong><br>
+                <span id="comparison">-</span>
+            </div>
+
+            <div class="stat" style="border-left-color: var(--danger);">
+                <div class="stat-label">Estimated Casualties</div>
+                <div class="stat-value" style="color: var(--danger);">
+                    <span id="casualties">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map', {
+            center: [40.7128, -74.0060], // New York
+            zoom: 11,
+            zoomControl: true
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // State
+        let currentImpactMarkers = [];
+
+        // Get elements
+        const diameterSlider = document.getElementById('diameter');
+        const velocitySlider = document.getElementById('velocity');
+        const angleSlider = document.getElementById('angle');
+        const compositionSelect = document.getElementById('composition');
+        const targetTypeSelect = document.getElementById('target-type');
+        const instruction = document.getElementById('instruction');
+
+        // Update displays
+        diameterSlider.addEventListener('input', (e) => {
+            document.getElementById('diameter-display').textContent = e.target.value + ' m';
+        });
+
+        velocitySlider.addEventListener('input', (e) => {
+            document.getElementById('velocity-display').textContent = e.target.value + ' km/s';
+        });
+
+        angleSlider.addEventListener('input', (e) => {
+            document.getElementById('angle-display').textContent = e.target.value + '°';
+        });
+
+        // Physics calculations
+        function calculateImpact(diameter, velocity, angle, density, targetType) {
+            const radius = diameter / 2;
+            const volume = (4/3) * Math.PI * Math.pow(radius, 3);
+            const mass = volume * density;
+            
+            const velocityMs = velocity * 1000;
+            const energy = 0.5 * mass * Math.pow(velocityMs, 2);
+            const energyMegatons = energy / (4.184e15);
+            
+            const angleRad = angle * Math.PI / 180;
+            const targetFactor = targetType === 'water' ? 1.3 : 1.0;
+            const craterDiameter = Math.pow(energy / 1e15, 0.3) * Math.sin(angleRad) * targetFactor * 1000;
+            
+            const fireballRadius = 0.028 * Math.pow(energyMegatons, 0.33);
+            const blastRadius = 0.22 * Math.pow(energyMegatons, 0.33);
+            const thermalRadius = 0.67 * Math.pow(energyMegatons, 0.41);
+            const seismic = 0.67 * Math.log10(energyMegatons) + 3.87;
+            
+            return {
+                energy: energyMegatons,
+                craterDiameter: craterDiameter,
+                fireballRadius: fireballRadius,
+                blastRadius: blastRadius,
+                thermalRadius: thermalRadius,
+                seismic: seismic,
+                mass: mass
+            };
+        }
+
+        function getEnergyComparison(megatons) {
+            if (megatons < 0.001) {
+                const tons = megatons * 1e6;
+                return `${tons.toFixed(0)} tons of TNT`;
+            } else if (megatons < 0.015) {
+                const kilotons = megatons * 1000;
+                return `${kilotons.toFixed(1)} kilotons (Small nuclear weapon)`;
+            } else if (megatons < 1) {
+                const kilotons = megatons * 1000;
+                return `${kilotons.toFixed(0)} kilotons (Hiroshima was 15 kt)`;
+            } else if (megatons < 50) {
+                return `${megatons.toFixed(1)} megatons (Large nuclear weapon)`;
+            } else if (megatons < 10000) {
+                const factor = (megatons / 50).toFixed(0);
+                return `${megatons.toFixed(0)} megatons (${factor}x largest nuclear test)`;
+            } else {
+                const factor = (megatons / 100000000).toFixed(2);
+                return `${megatons.toFixed(0)} megatons (${factor}x Chicxulub impact)`;
+            }
+        }
+
+        async function estimateCasualties(blastRadius) {
+            const avgPopDensity = 5000;
+            const affectedArea = Math.PI * Math.pow(blastRadius, 2);
+            const estimated = Math.floor(affectedArea * avgPopDensity);
+            
+            if (estimated < 1000) return `${estimated} people`;
+            if (estimated < 1000000) return `${(estimated / 1000).toFixed(0)}K people`;
+            return `${(estimated / 1000000).toFixed(1)}M people`;
+        }
+
+        // Clear previous impact markers
+        function clearImpact() {
+            currentImpactMarkers.forEach(marker => map.removeLayer(marker));
+            currentImpactMarkers = [];
+        }
+
+        // Handle map click
+        map.on('click', async function(e) {
+            instruction.classList.add('hidden');
+            clearImpact();
+            
+            const diameter = parseFloat(diameterSlider.value);
+            const velocity = parseFloat(velocitySlider.value);
+            const angle = parseFloat(angleSlider.value);
+            const density = parseFloat(compositionSelect.value);
+            const targetType = targetTypeSelect.value;
+            
+            const impact = calculateImpact(diameter, velocity, angle, density, targetType);
+            
+            // Update UI
+            document.getElementById('energy').textContent = impact.energy.toExponential(2);
+            document.getElementById('crater').textContent = impact.craterDiameter.toFixed(0);
+            document.getElementById('fireball').textContent = impact.fireballRadius.toFixed(2);
+            document.getElementById('blast').textContent = impact.blastRadius.toFixed(2);
+            document.getElementById('thermal').textContent = impact.thermalRadius.toFixed(2);
+            document.getElementById('seismic').textContent = impact.seismic.toFixed(1);
+            document.getElementById('comparison').textContent = getEnergyComparison(impact.energy);
+            
+            const casualties = await estimateCasualties(impact.blastRadius);
+            document.getElementById('casualties').textContent = casualties;
+            
+            // Draw impact zones
+            const zones = [
+                { radius: impact.fireballRadius, color: '#ff0000', label: 'Fireball', opacity: 0.3 },
+                { radius: impact.blastRadius, color: '#ff6600', label: 'Air Blast', opacity: 0.2 },
+                { radius: impact.thermalRadius, color: '#ffaa00', label: 'Thermal Radiation', opacity: 0.15 }
+            ];
+            
+            zones.forEach(zone => {
+                const circle = L.circle(e.latlng, {
+                    radius: zone.radius * 1000,
+                    color: zone.color,
+                    fillColor: zone.color,
+                    fillOpacity: zone.opacity,
+                    weight: 2
+                }).addTo(map);
+                
+                circle.bindPopup(`<b>${zone.label}</b><br>Radius: ${zone.radius.toFixed(2)} km`);
+                currentImpactMarkers.push(circle);
+            });
+            
+            // Impact marker
+            const marker = L.marker(e.latlng, {
+                icon: L.divIcon({
+                    className: 'impact-marker',
+                    iconSize: [40, 40]
+                })
+            }).addTo(map);
+            
+            currentImpactMarkers.push(marker);
+            
+            // Zoom to fit
+            const bounds = L.latLngBounds([e.latlng]);
+            zones.forEach(zone => {
+                const circleRadius = zone.radius * 1000;
+                const point = L.latLng(e.latlng.lat, e.latlng.lng);
+                bounds.extend(L.latLng(point.lat + circleRadius/111000, point.lng));
+                bounds.extend(L.latLng(point.lat - circleRadius/111000, point.lng));
+            });
+            
+            map.fitBounds(bounds, { padding: [50, 50] });
+        });
+
+        // Random asteroid
+        document.getElementById('random-btn').addEventListener('click', () => {
+            const randomDiameter = Math.floor(Math.random() * 2000) + 50;
+            const randomVelocity = Math.floor(Math.random() * 50) + 15;
+            const randomAngle = Math.floor(Math.random() * 75) + 15;
+            
+            diameterSlider.value = randomDiameter;
+            velocitySlider.value = randomVelocity;
+            angleSlider.value = randomAngle;
+            
+            document.getElementById('diameter-display').textContent = randomDiameter + ' m';
+            document.getElementById('velocity-display').textContent = randomVelocity + ' km/s';
+            document.getElementById('angle-display').textContent = randomAngle + '°';
+        });
+
+        // Presets
+        const presets = {
+            tunguska: { diameter: 60, velocity: 27, angle: 45, density: 1000 },
+            chelyabinsk: { diameter: 20, velocity: 19, angle: 18, density: 3500 },
+            barringer: { diameter: 50, velocity: 12.8, angle: 45, density: 7800 },
+            chicxulub: { diameter: 10000, velocity: 20, angle: 60, density: 3000 }
+        };
+
+        document.querySelectorAll('.preset-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const preset = presets[button.dataset.preset];
+                diameterSlider.value = preset.diameter;
+                velocitySlider.value = preset.velocity;
+                angleSlider.value = preset.angle;
+                compositionSelect.value = preset.density;
+                
+                document.getElementById('diameter-display').textContent = preset.diameter + ' m';
+                document.getElementById('velocity-display').textContent = preset.velocity + ' km/s';
+                document.getElementById('angle-display').textContent = preset.angle + '°';
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                document.getElementById('random-btn').click();
+            } else if (e.key === 'c' || e.key === 'C') {
+                clearImpact();
+            }
+        });
+    </script>
+</body>
+</html>
