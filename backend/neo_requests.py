@@ -1,14 +1,18 @@
 import os, requests, json
+from dotenv import load_dotenv
 
 
+load_dotenv()
 NASA_NEO = "https://api.nasa.gov/neo/rest/v1"
 
 def fetch_near_objects(start_date=None, end_date=None):
-    if start_date or end_date == None :
+    if not start_date or not end_date :
         print(f"Date not provided")
         return []
 
     api_key = os.getenv("NASA_NEO_API")
+    if not api_key: 
+        raise ValueError("NASA API key not reachable")
     url = f"{NASA_NEO}/feed"
     params = {
         "start_date" : start_date,
@@ -17,6 +21,7 @@ def fetch_near_objects(start_date=None, end_date=None):
     }
 
     try : 
+        
         response = requests.get(url, params=params)
         response.raise_for_status
         data = response.json()

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palantir - NEO Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div id="scene-container">
+        <canvas id="bg"></canvas>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1><i class="fa-solid fa-satellite-dish"></i> Palantir</h1>
+            <p>Live Near-Earth Object Feed</p>
+            <p class="hint" style="font-size: 0.75rem; text-align: center; color: rgb(160, 160, 192); margin-top: 0.5rem;">[Click here to reset view]</p>
+        </div>
+        <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" id="search-box" placeholder="Search for meteors...">
+        </div>
+        <div id="loading-indicator">
+            <div class="spinner"></div>
+            <p>Fetching data from NASA...</p>
+        </div>
+        <ul id="neo-list">
+            <!-- NEO items will be dynamically injected here -->
+        </ul>
+        <div class="sidebar-footer">
+            <button id="impact-analysis-btn" disabled>
+                <i class="fa-solid fa-burst"></i> Analyze Impact
+            </button>
+            <!-- NEW BUTTON -->
+            <button id="launcher-btn">
+                <i class="fa-solid fa-user-astronaut"></i> Custom Asteroid
+            </button>
+        </div>
+    </aside>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        }
+    }
+    </script>
+    <script src="script.js" type="module"></script>
+</body>
+</html>
+
