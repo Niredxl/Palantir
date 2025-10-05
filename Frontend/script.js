@@ -107,8 +107,8 @@ const neoList = document.getElementById('neo-list');
 const loadingIndicator = document.getElementById('loading-indicator');
 const searchBox = document.getElementById('search-box');
 const sidebarHeader = document.querySelector('.sidebar-header');
-const impactBtn = document.getElementById('impact-analysis-btn');
-const launcherBtn = document.getElementById('launcher-btn');
+const customBtn = document.getElementById('customastro-btn');
+const mitigationBtn = document.getElementById('mitigation-btn');
 
 let allNeoData = [];
 let currentTrajectoryLine = null;
@@ -174,7 +174,6 @@ function updateSidebar(data) {
             displaySingleNEO(neo);
             
             selectedNEO = neo;
-            impactBtn.disabled = false;
         });
         neoList.appendChild(item);
     });
@@ -195,7 +194,6 @@ function visualizeAllNEOs(data) {
     data.forEach(neo => createAsteroid(neo, true));
     
     selectedNEO = null;
-    impactBtn.disabled = true;
 }
 
 function displaySingleNEO(neo) {
@@ -297,18 +295,13 @@ sidebarHeader.addEventListener('click', () => {
     visualizeAllNEOs(allNeoData);
 });
 
-impactBtn.addEventListener('click', () => {
-    if (selectedNEO) {
-        const name = encodeURIComponent(selectedNEO.name);
-        const size = selectedNEO.size;
-        const speed = selectedNEO.speed;
-        const isHazardous = selectedNEO.isHazardous;
-        window.location.href = `impact.html?name=${name}&size=${size}&speed=${speed}&isHazardous=${isHazardous}`;
-    }
-});
 
-launcherBtn.addEventListener('click', () => {
+
+customBtn.addEventListener('click', () => {
     window.location.href = 'custom.html';
+});
+mitigationBtn.addEventListener('click', () => {
+    window.location.href = 'mitigation.html';
 });
 
 
